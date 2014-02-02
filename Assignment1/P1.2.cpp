@@ -3,7 +3,9 @@
 #include <cstdlib>
 #include <algorithm>
 #include <cilk/cilk.h>
-#define BLOCK_SIZE 2
+
+#define STRING_LENGTH 8192
+#define BLOCK_SIZE 128
 int **costMatrix;
 	void printCostMatrix(int size1,int size2){
 	for(int i=1;i<=size1;i++){
@@ -92,13 +94,23 @@ void computeLCS(char*a, char*b,int length1,int length2){
 	init(length1,length2);
 	lcs(a,b,0,0,length1,length2);
 	//sync;
-	printCostMatrix(length1,length2);
-	backtrace(a,b,length1,length2,costMatrix[length1][length2]);
-	std::cout<< std::endl;
+	//printCostMatrix(length1,length2);
+	//backtrace(a,b,length1,length2,costMatrix[length1][length2]);
+	//std::cout<< std::endl;
+}
+void randstr(char s[], int n)
+{
+	const char *src = "abcdefghijklmnopqrstuvwxyz";	//alphabet
+	for (int i=0; i<n; i++)
+	{
+		s[i] = src[rand() % 26];	//random letter generating
+	}
 }
 int main(int argc,char**argv){
-	char *a = "abdasdasdsavc";
-	char *b = "ascsdass";
+	char *a = new char[STRING_LENGTH];
+	char *b = new char[STRING_LENGTH];
+	randstr(a,STRING_LENGTH);
+	randstr(b,STRING_LENGTH);
 	int length1 = strlen(a);
 	int length2 = strlen(b);
 	if(length1<=length2){
