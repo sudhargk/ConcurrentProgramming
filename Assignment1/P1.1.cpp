@@ -5,6 +5,9 @@
 
 using namespace std;
 static int BLOCK_SIZE=2;
+
+//Matrix multiplication 
+//Contains the implementaion of square of a matrix
 class Matrix{
 	double *matrix;
 	int size;
@@ -55,9 +58,9 @@ void Matrix :: print(){
 		std::cout<<std::endl;
 	}
 }
-void printMatrix(double*matrix,int size){
-	for(int i = 0 ; i < size;i++){
-		for(int j=0;j<size;j++){
+void printMatrix(double*matrix,int ro,int co,int blocksize,int size){
+	for(int i = ro ; i < ro+blocksize;i++){
+		for(int j=co;j<co+blocksize;j++){
 			std::cout<<matrix[i*size+j]<<"\t";
 		}
 		std::cout<<std::endl;
@@ -66,12 +69,23 @@ void printMatrix(double*matrix,int size){
 
 void Matrix :: multiply(double *out,int ro,int co,double *A,int ra,int ca,double *B,int rb,int cb,int blocksize,int size){
 	if(blocksize<=BLOCK_SIZE){
+		
 		for(unsigned int i=0;i<blocksize;i++){
 			for(unsigned int k=0;k<blocksize;k++){
 				for(unsigned int j=0;j<blocksize;j++){
 					out[(i+ro)*size+(j+co)] += A[(i+ra)*size+(k+ca)] * B[(k+rb)*size+(j+cb)];
 				}	
 			}	
+		}
+		if(ro==0&co==0){
+		  std::cout<<"A :: "<<ra<<ca<<endl;
+		  printMatrix(A,ra,ca,blocksize,size);
+		  std::cout<<"B :: "<<rb<<cb<<endl;
+		  printMatrix(B,rb,cb,blocksize,size);
+		
+		  std::cout<<"Out :: "<<ro<<co<<endl;
+		  printMatrix(out,ro,co,blocksize,size);
+		  cout<<endl;
 		}
 	}else{
 		int nwsize = blocksize/2;
@@ -82,17 +96,17 @@ void Matrix :: multiply(double *out,int ro,int co,double *A,int ra,int ca,double
 		int rb1 = rb, rb2 = rb+nwsize;
 		int cb1 = cb, cb2 = cb+nwsize;
 
-		cilk_spawn multiply(out,ro1,co1,A,ra1,ca1,B,rb1,cb1,nwsize,size);
-		cilk_spawn multiply(out,ro1,co2,A,ra1,ca1,B,rb1,cb2,nwsize,size);
-		cilk_spawn multiply(out,ro2,co2,A,ra2,ca1,B,rb1,cb2,nwsize,size);	
-		cilk_spawn multiply(out,ro2,co1,A,ra2,ca1,B,rb1,cb1,nwsize,size);
+		multiply(out,ro1,co1,A,ra1,ca1,B,rb1,cb1,nwsize,size);
+		multiply(out,ro1,co2,A,ra1,ca1,B,rb1,cb2,nwsize,size);
+		multiply(out,ro2,co2,A,ra2,ca1,B,rb1,cb2,nwsize,size);	
+		multiply(out,ro2,co1,A,ra2,ca1,B,rb1,cb1,nwsize,size);
 		
-		cilk_sync;
+		//cilk_sync;
 
-		cilk_spawn multiply(out,ro2,co1,A,ra2,ca2,B,rb2,cb1,nwsize,size);
-		cilk_spawn multiply(out,ro2,co2,A,ra2,ca2,B,rb2,cb2,nwsize,size);		
-		cilk_spawn multiply(out,ro1,co2,A,ra1,ca2,B,rb2,cb2,nwsize,size);
-		cilk_spawn multiply(out,ro1,co1,A,ra1,ca2,B,rb2,cb1,nwsize,size);	
+		multiply(out,ro2,co1,A,ra2,ca2,B,rb2,cb1,nwsize,size);
+		multiply(out,ro2,co2,A,ra2,ca2,B,rb2,cb2,nwsize,size);		
+		multiply(out,ro1,co2,A,ra1,ca2,B,rb2,cb2,nwsize,size);
+		multiply(out,ro1,co1,A,ra1,ca2,B,rb2,cb1,nwsize,size);	
 	}
 }
 
