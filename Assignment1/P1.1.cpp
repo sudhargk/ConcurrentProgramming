@@ -1,8 +1,8 @@
 #include<iostream>
 #include <cilk/cilk.h>
 #include <cstdlib>
-#define DEFAULT_MATRIX_SIZE 8
-static int BLOCK_SIZE=2;
+#define DEFAULT_MATRIX_SIZE 5
+static const int BLOCK_SIZE=2;
 using namespace std;
 
 
@@ -13,7 +13,8 @@ class Matrix{
 	int size;
 	private :
 		void init(bool initz);
-		void multiply(double *out,int ro,int co,double *A,int ra,int ca,double *B,int rb,int cb,int blocksize,int size);
+		void multiply(double *out,int ro,int co,double *A,int ra,int ca,double *B,int rb,int cb,
+					  int rowsize,int ksize,int colsize,int size);
 	public :
 		Matrix(bool initz);
 		Matrix(int size,bool initz);
@@ -68,42 +69,44 @@ void printMatrix(double*matrix,int ro,int co,int blocksize,int size){
 	}
 }
 
-void Matrix :: multiply(double *out,int ro,int co,double *A,int ra,int ca,double *B,int rb,int cb,int blocksize,int size){
-	if(blocksize<=BLOCK_SIZE){
-		for(unsigned int i=0;i<blocksize;i++){
-			for(unsigned int k=0;k<blocksize;k++){
-				for(unsigned int j=0;j<blocksize;j++){
+void Matrix :: multiply(double *out,int ro,int co,double *A,int ra,int ca,double *B,int rb,int cb,
+						int rowsize,int ksize,int colsize,int size){
+	if(rowsize<=BLOCK_SIZE||colsize<=BLOCK_SIZE||ksize<=BLOCK_SIZE){
+		for(unsigned int i=0;i<rowsize;i++){
+			for(unsigned int k=0;k<ksize;k++){
+				for(unsigned int j=0;j<colsize;j++){
 					out[(i+ro)*size+(j+co)] += A[(i+ra)*size+(k+ca)] * B[(k+rb)*size+(j+cb)];
 				}	
 			}	
 		}
 	}else{
-		int nwsize = (blocksize+1)/2;
-		int ro1 = ro, ro2 = ro+nwsize;
-		int co1 = co, co2 = co+nwsize;
-		int ra1 = ra, ra2 = ra+nwsize;
-		int ca1 = ca, ca2 = ca+nwsize;
-		int rb1 = rb, rb2 = rb+nwsize;
-		int cb1 = cb, cb2 = cb+nwsize;
+		int nrowsize = (rowsize+1)/2;
+		int ncolsize = (colsize+1)/2;
+		int ro1 = ro, ro2 = ro+nrowsize;
+		int co1 = co, co2 = co+ncolsize;
+		int ra1 = ra, ra2 = ra+nrowsize;
+		int ca1 = ca, ca2 = ca+ncolsize;
+		int rb1 = rb, rb2 = rb+nrowsize;
+		int cb1 = cb, cb2 = cb+ncolsize;
 
-		multiply(out,ro1,co1,A,ra1,ca1,B,rb1,cb1,nwsize,size);
-		multiply(out,ro1,co2,A,ra1,ca1,B,rb1,cb2,nwsize,size);
-		multiply(out,ro2,co2,A,ra2,ca1,B,rb1,cb2,nwsize,size);	
-		multiply(out,ro2,co1,A,ra2,ca1,B,rb1,cb1,nwsize,size);
+		multiply(out,ro1,co1,A,ra1,ca1,B,rb1,cb1,nrowsize,nrowsize,ncolsize,size);
+		multiply(out,ro1,co2,A,ra1,ca1,B,rb1,cb2,nrowsize,ncolsize,colsize-ncolsize,size);
+		multiply(out,ro2,co2,A,ra2,ca1,B,rb1,cb2,rowsize-nrowsize,ncolsize,colsize-ncolsize,size);	
+		multiply(out,ro2,co1,A,ra2,ca1,B,rb1,cb1,rowsize-nrowsize,ncolsize,ncolsize,size);
 		
 		//cilk_sync;
 
-		multiply(out,ro2,co1,A,ra2,ca2,B,rb2,cb1,nwsize,size);
-		multiply(out,ro2,co2,A,ra2,ca2,B,rb2,cb2,nwsize,size);		
-		multiply(out,ro1,co2,A,ra1,ca2,B,rb2,cb2,nwsize,size);
-		multiply(out,ro1,co1,A,ra1,ca2,B,rb2,cb1,nwsize,size);	
+		multiply(out,ro2,co1,A,ra2,ca2,B,rb2,cb1,rowsize-nrowsize,colsize-ncolsize,ncolsize,size);
+		multiply(out,ro2,co2,A,ra2,ca2,B,rb2,cb2,rowsize-nrowsize,rowsize-nrowsize,colsize-ncolsize,size);	
+		multiply(out,ro1,co2,A,ra1,ca2,B,rb2,cb2,nrowsize,colsize-ncolsize,colsize-ncolsize,size);
+		multiply(out,ro1,co1,A,ra1,ca2,B,rb2,cb1,nrowsize,rowsize-nrowsize,ncolsize,size);	
 		
 	}
 }
 
 Matrix* Matrix :: square(){
 	Matrix *output = new Matrix(size,false);
-	multiply(output->matrix,0,0,matrix,0,0,matrix,0,0,size,size);
+	multiply(output->matrix,0,0,matrix,0,0,matrix,0,0,size,size,size,size);
 	return output;
 }
 

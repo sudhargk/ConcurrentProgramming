@@ -95,14 +95,13 @@ void computeLCS(char*a, char*b,int length1,int length2){
 	lcs(a,b,0,0,length1,length2);
 	//sync;
 	//printCostMatrix(length1,length2);
-	//backtrace(a,b,length1,length2,costMatrix[length1][length2]);
-	//std::cout<< std::endl;
+	backtrace(a,b,length1,length2,costMatrix[length1][length2]);
+	std::cout<< std::endl;
 }
 void randstr(char s[], int n)
 {
 	const char *src = "abcdefghijklmnopqrstuvwxyz";	//alphabet
-	for (int i=0; i<n; i++)
-	{
+	for (int i=0; i<n; i++){
 		s[i] = src[rand() % 26];	//random letter generating
 	}
 }
